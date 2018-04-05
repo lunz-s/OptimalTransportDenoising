@@ -15,6 +15,8 @@ import tensorflow as tf
 import util as ut
 
 from forward_models import ct
+from forward_models import denoising
+
 from data_pips import LUNA
 from networks import binary_classifier
 from networks import UNet
@@ -329,7 +331,7 @@ class postprocessing_adversarial(generic_framework):
         return BSDS()
 
     def get_model(self, size):
-        return ct(size=size)
+        return denoising(size=size)
 
     def get_adversarial_network(self):
         return binary_classifier(size=self.image_size, colors=self.colors)
@@ -362,7 +364,8 @@ class postprocessing_adversarial(generic_framework):
                                    dtype=tf.float32)
         self.guess = tf.placeholder(shape=[None, self.image_space[0], self.image_space[1], self.data_pip.colors],
                                 dtype=tf.float32)
-        self.measurement = tf.placeholder(shape=[None, self.measurement_space[0], self.measurement_space[1], self.data_pip.colors],
+        self.measurement = tf.placeholder(shape=[None, self.measurement_space[0],
+                                                 self.measurement_space[1], self.data_pip.colors],
                                 dtype=tf.float32)
         # network output
         with tf.name_scope('Forward_model'):

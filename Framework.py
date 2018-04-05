@@ -72,8 +72,7 @@ class generic_framework(object):
                 data = self.model.forward_operator(image[...,k])
 
                 # add white Gaussian noise
-                noisy_data = data + np.random.normal(size= self.measurement_space) *\
-                                    np.mean(np.abs(data)) * self.noise_level
+                noisy_data = data + np.random.normal(size= self.measurement_space) * self.noise_level
 
                 fbp [i, ..., k] = self.model.inverse(noisy_data)
                 x_true[i, ..., k] = image[...,k]
@@ -310,11 +309,11 @@ class postprocessing_adversarial(generic_framework):
     # learning rate for Adams
     learning_rate = 0.001
     # learning rate adversarial
-    learning_rate_adv = 0.001
+    learning_rate_adv = 0.0005
     # weight adv net
     trans_loss_weight = 1
     # The batch size
-    batch_size = 64
+    batch_size = 32
     # weight of soft relaxation regulariser adversarial net
     lmb= 10
     # default_adv_steps
@@ -327,7 +326,7 @@ class postprocessing_adversarial(generic_framework):
         return UNet(size=size, colors=colors)
 
     def get_Data_pip(self):
-        return LUNA()
+        return BSDS()
 
     def get_model(self, size):
         return ct(size=size)
@@ -369,10 +368,11 @@ class postprocessing_adversarial(generic_framework):
         with tf.name_scope('Forward_model'):
             self.out = self.network.net(self.guess)
         # compute loss
+        # transport loss: L2 loss squared
         with tf.variable_scope('adversarial_loss'):
             self.adv = tf.reduce_mean(adversarial_net.net(self.guess))
             transport_loss = self.model.tensorflow_operator(self.out) - self.measurement
-            self.trans_loss = tf.reduce_mean(tf.sqrt(tf.reduce_sum(transport_loss, axis=(1, 2, 3))))
+            self.trans_loss = tf.reduce_mean(tf.reduce_sum(transport_loss, axis=(1, 2, 3)))
             self.loss =  self.adv + self.trans_loss_weight * self.trans_loss
             # logging tools
             tf.summary.scalar('Loss', self.loss)
@@ -470,6 +470,18 @@ class postprocessing_adversarial(generic_framework):
 
                 self.visualize(x_true, guess, out, 'Iteration_{}'.format(iteration))
         self.save(self.global_step)
+
+    # estimate good regularisation parameter lmb = 'trans_loss_weight'. Works for denoising only!
+    # heurisitic: grad_y D(y) + lmb ||x - y||^2_2 |_{y = x_true} = 0
+    # implies: 1 = lmb 2 ||x-x_true||_2
+    def find_reg_parameter(self):
+        # estimate ||x-x_true||_2
+        # get test data
+        measurement, x_true, guess = self.generate_training_data(self.batch_size, training_data=True)
+        # mismatch for denoising only!!!
+        mismatch = ut.l2_norm(guess - x_true)
+        return 1/(2*mismatch)
+
 
 
 # TV reconstruction

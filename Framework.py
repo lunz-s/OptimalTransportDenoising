@@ -368,7 +368,7 @@ class postprocessing_adversarial(generic_framework):
                                                  self.measurement_space[1], self.data_pip.colors],
                                 dtype=tf.float32)
         # network output
-        with tf.name_scope('Forward_model'):
+        with tf.variable_scope('Forward_model'):
             self.out = self.network.net(self.guess)
         # compute loss
         # transport loss: L2 loss squared

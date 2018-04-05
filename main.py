@@ -14,7 +14,7 @@ if experiment == 1:
         # learning rate adversarial
         learning_rate_adv = 0.001
         # weight adv net
-        trans_loss_weight = 1
+        trans_loss_weight = 0.2
         # The batch size
         batch_size = 64
         # weight of soft relaxation regulariser adversarial net

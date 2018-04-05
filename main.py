@@ -31,7 +31,7 @@ if experiment == 1:
 
     exp = input('Experiment type: ')
     if exp == 1:
-        at.find_reg_parameter()
+        print(at.find_reg_parameter())
 
     if exp == 2:
         at.train(300)

@@ -7,7 +7,7 @@ experiment = input('Please insert number of experiment to run:')
 if experiment == 1:
 
     class pp_ad(postprocessing_adversarial):
-        experiment_name = 'Parameter_.2'
+        experiment_name = 'Theory_Parameter'
 
         # weight adv net
         trans_loss_weight = 0.02

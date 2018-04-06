@@ -471,7 +471,7 @@ class postprocessing_adversarial(generic_framework):
                                                                 trans_loss, adv_loss))
                 self.writer.add_summary(summary, iteration)
 
-                self.visualize(x_true, guess, out, 'Iteration_{}'.format(iteration))
+                self.visualize(x_true, guess, out, 'Image/Iteration_{}'.format(iteration))
         self.save(self.global_step)
 
     # estimate good regularisation parameter lmb = 'trans_loss_weight'. Works for denoising only!

@@ -375,8 +375,8 @@ class postprocessing_adversarial(generic_framework):
         with tf.variable_scope('adversarial_loss'):
             self.adv = tf.reduce_mean(adversarial_net.net(self.guess))
             transport_loss = self.model.tensorflow_operator(self.out) - self.measurement
-            self.trans_loss = tf.reduce_mean(tf.reduce_sum(transport_loss, axis=(1, 2, 3)))
-            self.loss =  self.adv + self.trans_loss_weight * self.trans_loss
+            self.trans_loss = tf.reduce_mean(tf.reduce_sum(tf.square(transport_loss), axis=(1, 2, 3)))
+            self.loss = self.adv + self.trans_loss_weight * self.trans_loss
             # logging tools
             tf.summary.scalar('Loss', self.loss)
 

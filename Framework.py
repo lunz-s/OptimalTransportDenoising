@@ -467,7 +467,7 @@ class postprocessing_adversarial(generic_framework):
                                     self.network_guess: out, self.true: x_true, self.measurement: measurement,
                                        self.guess: guess})
                 print('Iteration: {}, Quality: {}, Wass. Dis.: {}, '
-                      'Transp. Loss{}, Wass. Loss.:{}'.format(iteration, quality, loss_was,
+                      'Transp. Loss: {}, Wass. Loss.:{}'.format(iteration, quality, loss_was,
                                                                 trans_loss, adv_loss))
                 self.writer.add_summary(summary, iteration)
 

@@ -466,8 +466,8 @@ class postprocessing_adversarial(generic_framework):
                                     feed_dict={self.random_uint: epsilon, self.ground_truth: x_true,
                                     self.network_guess: out, self.true: x_true, self.measurement: measurement,
                                        self.guess: guess})
-                print('Iteration: {}, Quality: {}, Wass. Dis.: {}, '
-                      'Transp. Loss: {}, Wass. Loss.:{}'.format(iteration, quality, loss_was,
+                print('Iteration: {}, mu: {}, Quality: {}, Wass. Dis.: {}, '
+                      'Transp. Loss: {}, Wass. Loss.:{}'.format(iteration, self.trans_loss_weight, quality, loss_was,
                                                                 trans_loss, adv_loss))
                 self.writer.add_summary(summary, iteration)
 

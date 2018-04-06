@@ -7,7 +7,7 @@ experiment = input('Please insert number of experiment to run:')
 if experiment == 1:
 
     class pp_ad(postprocessing_adversarial):
-        experiment_name = 'standard_architecture'
+        experiment_name = 'Parameter_.2'
 
         # learning rate for Adams
         learning_rate = 0.001
@@ -27,7 +27,7 @@ if experiment == 1:
         # noise level
         noise_level = 0.1
 
-    at = postprocessing_adversarial()
+    at = pp_ad()
 
     exp = input('Experiment type: ')
     if exp == 1:
@@ -61,7 +61,7 @@ if experiment == 2:
         # noise level
         noise_level = 0.1
 
-    at = postprocessing_adversarial()
+    at = pp_ad()
 
     at.train(300)
 

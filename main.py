@@ -10,7 +10,7 @@ if experiment == 1:
         experiment_name = 'Parameter_.2'
 
         # weight adv net
-        trans_loss_weight = 0.2
+        trans_loss_weight = 0.02
 
         # noise level
         noise_level = 0.1
@@ -48,7 +48,7 @@ if experiment == 3:
 
 
         # weight adv net
-        trans_loss_weight = 1
+        trans_loss_weight = 0.2
 
         # noise level
         noise_level = 0.1

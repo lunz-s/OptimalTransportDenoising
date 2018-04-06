@@ -381,7 +381,7 @@ class postprocessing_adversarial(generic_framework):
             tf.summary.scalar('Loss', self.loss)
 
         # track L2 loss to ground truth for quality control
-        self.quality = tf.reduce_mean(tf.sqrt(tf.reduce_sum(self.out- self.true, axis=(1, 2, 3))))
+        self.quality = tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(self.out- self.true), axis=(1, 2, 3))))
 
         # optimizer for Wasserstein network
         self.global_step = tf.Variable(0, name='global_step', trainable=False)

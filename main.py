@@ -7,16 +7,16 @@ experiment = input('Please insert number of experiment to run:')
 if experiment == 1:
 
     class pp_ad(postprocessing_adversarial):
-        model_name = 'standard_architectur'
+        experiment_name = 'standard_architecture'
 
         # learning rate for Adams
         learning_rate = 0.001
         # learning rate adversarial
-        learning_rate_adv = 0.001
+        learning_rate_adv = 0.0005
         # weight adv net
         trans_loss_weight = 0.2
         # The batch size
-        batch_size = 64
+        batch_size = 32
         # weight of soft relaxation regulariser adversarial net
         lmb = 10
         # default_adv_steps

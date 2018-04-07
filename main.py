@@ -1,5 +1,7 @@
 from Framework import postprocessing_adversarial
 
+from networks import improved_binary_classifier
+
 experiment = input('Please insert number of experiment to run:')
 
 
@@ -45,14 +47,17 @@ if experiment == 2:
 if experiment == 3:
 
     class pp_ad(postprocessing_adversarial):
-        experiment_name = 'High_transp_weight'
+        experiment_name = 'new_architectur'
 
 
         # weight adv net
-        trans_loss_weight = 0.2
+        trans_loss_weight = 0.0003
 
         # noise level
         noise_level = 0.1
+
+        def get_adversarial_network(self):
+            return improved_binary_classifier(size=self.image_size, colors=self.colors)
 
     at = pp_ad()
 

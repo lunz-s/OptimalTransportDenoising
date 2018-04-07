@@ -22,7 +22,8 @@ if experiment == 1:
         print(at.find_reg_parameter())
 
     if exp == 2:
-        at.train(300)
+        for k in range(3):
+            at.train(300)
 
 
 if experiment == 2:

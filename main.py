@@ -66,5 +66,6 @@ if experiment == 3:
         print(at.find_reg_parameter())
 
     if exp == 2:
-        at.train(300)
+        for k in range(5):
+            at.train(300)
 

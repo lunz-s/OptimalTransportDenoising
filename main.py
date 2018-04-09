@@ -54,7 +54,7 @@ if experiment == 2:
 if experiment == 3:
 
     class pp_ad(postprocessing_adversarial):
-        experiment_name = 'new_architectur'
+        experiment_name = 'new_architecture'
 
 
         # weight adv net

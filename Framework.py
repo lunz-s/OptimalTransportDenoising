@@ -377,11 +377,11 @@ class postprocessing_adversarial(generic_framework):
             transport_loss = self.model.tensorflow_operator(self.out) - self.measurement
             self.trans_loss = tf.reduce_mean(tf.reduce_sum(tf.square(transport_loss), axis=(1, 2, 3)))
             self.loss = self.adv + self.trans_loss_weight * self.trans_loss
+            self.normed_wass = ut.tf_l2_norm(self.adv - tf.reduce_mean(adversarial_net.net(self.true)))
 
 
         # track L2 loss to ground truth for quality control
         self.quality = tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(self.out- self.true), axis=(1, 2, 3))))
-        self.normed_wass = ut.tf_l2_norm(self.adv - tf.reduce_mean(adversarial_net.net(self.true)))
 
         # optimizer for Wasserstein network
         self.global_step = tf.Variable(0, name='global_step', trainable=False)

@@ -311,7 +311,7 @@ class postprocessing_adversarial(generic_framework):
     # learning rate for Adams
     learning_rate = 0.0005
     # learning rate adversarial
-    learning_rate_adv = 0.0003
+    learning_rate_adv = 0.0005
     # weight adv net
     trans_loss_weight = 1
     # The batch size
@@ -319,7 +319,7 @@ class postprocessing_adversarial(generic_framework):
     # weight of soft relaxation regulariser adversarial net
     lmb= 10
     # default_adv_steps
-    def_adv_steps = 7
+    def_adv_steps = 12
     # default_gen_steps
     def_gen_steps = 2
 

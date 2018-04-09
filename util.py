@@ -56,5 +56,9 @@ def lrelu(x):
     return (tf.nn.relu(x) - 0.1*tf.nn.relu(-x))
 
 # l2 norm for a tensor in typical (batch, x, y, channel) format
-def l2_norm(tensor):
-    return np.mean(np.sqrt(np.sum(np.square(tensor), axis=(1,2,3))))
+def l2_norm(array):
+    return np.mean(np.sqrt(np.sum(np.square(array), axis=(1,2,3))))
+
+# tensorflow l2 norm
+def tf_l2_norm(tensor):
+    return tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(tensor), axis=(1,2,3))))

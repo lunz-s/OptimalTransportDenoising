@@ -12,10 +12,13 @@ if experiment == 1:
         experiment_name = 'Theory_Parameter'
 
         # weight adv net
-        trans_loss_weight = 0.001
+        trans_loss_weight = 0.02
 
         # noise level
         noise_level = 0.1
+
+        def get_adversarial_network(self):
+            return improved_binary_classifier(size=self.image_size, colors=self.colors)
 
     at = pp_ad()
 
@@ -24,8 +27,8 @@ if experiment == 1:
         print(at.find_reg_parameter())
 
     if exp == 2:
-        for k in range(3):
-            at.train(300)
+        for k in range(5):
+            at.train(500)
 
 
 if experiment == 2:
@@ -40,9 +43,13 @@ if experiment == 2:
         # noise level
         noise_level = 0.1
 
+        def get_adversarial_network(self):
+            return improved_binary_classifier(size=self.image_size, colors=self.colors)
+
     at = pp_ad()
 
-    at.train(300)
+    for k in range(5):
+        at.train(500)
 
 if experiment == 3:
 
@@ -67,5 +74,5 @@ if experiment == 3:
 
     if exp == 2:
         for k in range(5):
-            at.train(300)
+            at.train(500)
 

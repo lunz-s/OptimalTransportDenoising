@@ -391,28 +391,24 @@ class postprocessing_adversarial(generic_framework):
                                                                                  tf.GraphKeys.GLOBAL_VARIABLES,
                                                                                  scope='Forward_model'))
 
-
         # logging tools
         with tf.name_scope('Generator_training'):
-            self.generator_tracking = []
 
             # get the batch size
             batch_s = tf.cast(tf.shape(self.true)[0], tf.float32)
 
             # loss analysis
-            self.generator_tracking.append(tf.summary.scalar('Overall_Loss', self.loss))
-            self.generator_tracking.append(tf.summary.scalar('Distributional_Loss', self.normed_wass))
-            self.generator_tracking.append(tf.summary.scalar('Transport_Loss',
-                                                             self.trans_loss_weight * self.trans_loss))
+            tf.summary.scalar('Overall_Loss', self.loss)
+            tf.summary.scalar('Distributional_Loss', self.normed_wass)
+            tf.summary.scalar('Transport_Loss',
+                                                             self.trans_loss_weight * self.trans_loss)
             gradients_distributional = tf.gradients(batch_s *self.adv, self.out)[0]
             gradients_transport = tf.gradients(batch_s *self.trans_loss_weight * self.trans_loss, self.out)[0]
-            self.generator_tracking.append(tf.summary.scalar('Distributional_Loss_Grad',
-                                                             ut.tf_l2_norm(gradients_distributional)))
-            self.generator_tracking.append(tf.summary.scalar('Transport_Loss_Grad',
-                                                             ut.tf_l2_norm(gradients_transport)))
+            tf.summary.scalar('Distributional_Loss_Grad', ut.tf_l2_norm(gradients_distributional))
+            tf.summary.scalar('Transport_Loss_Grad', ut.tf_l2_norm(gradients_transport))
 
             # quality analysis
-            self.generator_tracking.append(tf.summary.scalar('Quality', self.quality))
+            tf.summary.scalar('Quality', self.quality)
 
         ### adversarial network training
 
@@ -485,7 +481,7 @@ class postprocessing_adversarial(generic_framework):
                 iteration, adv_loss, \
                 trans_loss, loss_was, \
                 summary, quality = self.sess.run([self.global_step, self.adv,
-                                        self.trans_loss, self.loss_was, self.generator_tracking, self.quality],
+                                        self.trans_loss, self.loss_was, self.merged, self.quality],
                                     feed_dict={self.random_uint: epsilon, self.ground_truth: x_true,
                                     self.network_guess: out, self.true: x_true, self.measurement: measurement,
                                        self.guess: guess})

@@ -62,3 +62,22 @@ def l2_norm(array):
 # tensorflow l2 norm
 def tf_l2_norm(tensor):
     return tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(tensor), axis=(1,2,3))))
+
+
+# a dilated convolutional layer
+def dilated_conv_layer(inputs, name, filters=16, kernel_size=(5, 5), padding="same", rate = 1,
+                                 activation=lrelu, reuse=False):
+    inputs_dim = inputs.get_shape().as_list()
+    input_channels = inputs_dim[3]
+    with tf.variable_scope(name, reuse=reuse):
+        weights = tf.get_variable(name='weights', shape=[kernel_size[0], kernel_size[1], input_channels, filters],
+                            initializer=tf.contrib.layers.xavier_initializer())
+        bias = tf.get_variable(name='bias', shape=[1, 1, 1, filters],
+                            initializer=tf.zeros_initializer)
+    conv = tf.nn.atrous_conv2d(inputs, weights, rate = rate, padding=padding)
+    output = activation(tf.add(conv,bias))
+    return output
+
+# contracts an image tensor of shape [batch, size, size, channels] to its l1 values along the size dimensions
+def image_l1(inputs):
+    return tf.reduce_mean(tf.abs(inputs), axis = (1,2))

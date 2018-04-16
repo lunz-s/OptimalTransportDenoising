@@ -226,32 +226,33 @@ class resnet_classifier(object):
         self.colors = colors
 
     def net(self, input):
-        with tf.name_scope('pre_process'):
-            x = apply_conv(input, filters=64, kernel_size=3)
+        with tf.variable_scope('discriminator', reuse=self.reuse):
+            with tf.name_scope('pre_process'):
+                x = apply_conv(input, filters=64, kernel_size=3)
 
-        with tf.name_scope('x1'):
-            x = resblock(x, 64)
+            with tf.name_scope('x1'):
+                x = resblock(x, 64)
 
-        with tf.name_scope('x2'):
-            x = resblock(meanpool(x), filters=64) # 1/2
+            with tf.name_scope('x2'):
+                x = resblock(meanpool(x), filters=64) # 1/2
 
-        with tf.name_scope('x3'):
-            x = resblock(meanpool(x), filters=128) # 1/4
+            with tf.name_scope('x3'):
+                x = resblock(meanpool(x), filters=128) # 1/4
 
-        with tf.name_scope('x4'):
-            x = resblock(meanpool(x), filters=256) # 1/8
+            with tf.name_scope('x4'):
+                x = resblock(meanpool(x), filters=256) # 1/8
 
-        with tf.name_scope('x5'):
-            x = resblock(meanpool(x), filters=256) # 1/16
+            with tf.name_scope('x5'):
+                x = resblock(meanpool(x), filters=256) # 1/16
 
-        with tf.name_scope('post_process'):
-            flat = tf.contrib.layers.flatten(x)
-            flat = tf.layers.dense(flat, 1)
+            with tf.name_scope('post_process'):
+                flat = tf.contrib.layers.flatten(x)
+                flat = tf.layers.dense(flat, 1)
 
-        # change reuse variable for next call of network method
-        self.reuse = True
+            # change reuse variable for next call of network method
+            self.reuse = True
 
-        return flat
+            return flat
 
 class Res_UNet(object):
     def __init__(self, size, colors, parameter_sharing = True):
@@ -261,33 +262,34 @@ class Res_UNet(object):
         self.used = False
 
     def raw_net(self, input, reuse):
-        prepro = resblock(input,32)
-        # 128
-        conv1 =  resblock(prepro, filters=32)
-        # 64
-        pool1 = meanpool(conv1)
-        conv2 = resblock(pool1, filters=64)
-        # 32
-        pool2 = meanpool(conv2)
-        conv3= resblock(pool2, filters=128)
-        # 16
-        pool3 = meanpool(conv3)
-        conv4 = resblock(pool3, filters=128)
-        # 32
-        up4 = upsample(conv4)
-        conv5 = resblock(up4, filters= 128)
-        concat1 = tf.concat([conv5, conv3], axis= 3)
-        # 64
-        up5 = upsample(concat1)
-        conv6 = resblock(up5, filters= 64)
-        concat2 = tf.concat([conv6, conv2], axis= 3)
-        # 128
-        up6 = upsample(concat2)
-        conv7 = resblock(up6, filters= 32)
-        concat3 = tf.concat([conv7, conv1], axis= 3)
+        with tf.variable_scope('UNet', reuse=reuse):
+            prepro = resblock(input,32)
+            # 128
+            conv1 =  resblock(prepro, filters=32)
+            # 64
+            pool1 = meanpool(conv1)
+            conv2 = resblock(pool1, filters=64)
+            # 32
+            pool2 = meanpool(conv2)
+            conv3= resblock(pool2, filters=128)
+            # 16
+            pool3 = meanpool(conv3)
+            conv4 = resblock(pool3, filters=128)
+            # 32
+            up4 = upsample(conv4)
+            conv5 = resblock(up4, filters= 128)
+            concat1 = tf.concat([conv5, conv3], axis= 3)
+            # 64
+            up5 = upsample(concat1)
+            conv6 = resblock(up5, filters= 64)
+            concat2 = tf.concat([conv6, conv2], axis= 3)
+            # 128
+            up6 = upsample(concat2)
+            conv7 = resblock(up6, filters= 32)
+            concat3 = tf.concat([conv7, conv1], axis= 3)
 
-        output = resblock(concat3, filters=self.colors)
-        return output
+            output = resblock(concat3, filters=self.colors)
+            return output
 
     def net(self, input):
         output = self.raw_net(input, reuse=self.used)

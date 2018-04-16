@@ -309,9 +309,9 @@ class postprocessing_adversarial(generic_framework):
     model_name = 'PostProcessing'
 
     # learning rate for Adams
-    learning_rate = 0.0002
+    learning_rate = 0.0001
     # learning rate adversarial
-    learning_rate_adv = 0.0002
+    learning_rate_adv = 0.0001
     # weight adv net
     trans_loss_weight = 1
     # The batch size

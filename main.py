@@ -81,7 +81,7 @@ if experiment == 3:
 
 if experiment == 4:
     class pp_ad(postprocessing_adversarial):
-        experiment_name = 'l1_critc'
+        experiment_name = 'res_net'
 
 
         # weight adv net

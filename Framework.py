@@ -130,17 +130,17 @@ class postprocessing(generic_framework):
     model_name = 'PostProcessing'
 
     # learning rate for Adams
-    learning_rate = 0.0001
+    learning_rate = 0.0002
     # learning rate adversarial
-    learning_rate_adv = 0.0001
+    learning_rate_adv = 0.0002
     # The batch size
     batch_size = 16
     # weight of soft relaxation regulariser adversarial net
     lmb = 10
     # default_adv_steps
-    def_adv_steps = 12
+    def_adv_steps = 8
     # default_gen_steps
-    def_gen_steps = 2
+    def_gen_steps = 1
 
     # methods to define the models used in framework
     def get_network(self, size, colors):
@@ -193,6 +193,7 @@ class postprocessing(generic_framework):
         self.measurement = tf.placeholder(shape=[None, self.measurement_space[0],
                                                  self.measurement_space[1], self.data_pip.colors],
                                 dtype=tf.float32)
+        self.alpha_num = tf.placeholder(dtype=tf.float32)
         # network output
         with tf.variable_scope('Forward_model'):
             self.out = self.reconstruction_model(self.guess, self.measurement)
@@ -201,7 +202,7 @@ class postprocessing(generic_framework):
         with tf.variable_scope('adversarial_loss'):
             self.adv = tf.reduce_mean(adversarial_net.net(self.out))
             self.l2_loss = self.loss_model(measurement=self.measurement, reconstruction=self.out, truth=self.true)
-            self.loss = (1-self.alpha) * self.adv + self.alpha * self.l2_loss
+            self.loss = (1-self.alpha_num) * self.adv + self.alpha_num * self.l2_loss
             self.normed_wass = self.adv - tf.reduce_mean(adversarial_net.net(self.true))
 
 
@@ -224,12 +225,16 @@ class postprocessing(generic_framework):
 
             # loss analysis
             tf.summary.scalar('Overall_Loss', self.loss)
-            tf.summary.scalar('Distributional_Loss', self.normed_wass)
-            tf.summary.scalar('Transport_Loss', self.l2_loss)
+            tf.summary.scalar('Wasserstein_Loss', self.normed_wass)
+            tf.summary.scalar('L2_Loss', self.l2_loss)
+
+            tf.summary.image('Ground_Truth', self.true, max_outputs=2)
+            tf.summary.image('FBP', self.guess, max_outputs=2)
+            tf.summary.image('Reconstruction', self.out, max_outputs=2)
 
             gradients_distributional = tf.gradients(batch_s *self.adv, self.out)[0]
             gradients_transport = tf.gradients(batch_s *self.l2_loss, self.out)[0]
-            tf.summary.scalar('Distributional_Loss_Grad', ut.tf_l2_norm(gradients_distributional))
+            tf.summary.scalar('Wasserstein_Loss_Grad', ut.tf_l2_norm(gradients_distributional))
             tf.summary.scalar('Transport_Loss_Grad', ut.tf_l2_norm(gradients_transport))
 
             # quality analysis
@@ -264,6 +269,11 @@ class postprocessing(generic_framework):
         self.optimizer_adv = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss_was,
                             var_list=tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='adversarial_loss'))
 
+        with tf.name_scope('Adversarial_training'):
+            tf.summary.scalar('Data_Loss', self.wasserstein_loss)
+            tf.summary.scalar('Regularizer', self.regulariser_was)
+            tf.summary.scalar('Overall_Loss', self.loss_was)
+
         # set up the logger
         self.merged = tf.summary.merge_all()
         self.writer = tf.summary.FileWriter(self.path + 'Logs/',
@@ -279,16 +289,20 @@ class postprocessing(generic_framework):
         for k in range(steps):
             measurement, x_true, guess = self.generate_training_data(self.batch_size, training_data=True)
             out = self.sess.run(self.out, feed_dict={self.true: x_true, self.measurement: measurement,
-                                                     self.guess: guess})
+                                                     self.guess: guess, self.alpha_num: self.alpha})
             epsilon = np.random.uniform(size=(self.batch_size))
             self.sess.run(self.optimizer_adv, feed_dict={self.random_uint: epsilon, self.ground_truth: x_true,
                                                          self.network_guess: out})
 
-    def train_generator(self, steps):
+    def train_generator(self, steps, pretrain=False):
+        if pretrain:
+            alpha = 0
+        else:
+            alpha = self.alpha
         for k in range(steps):
             measurement, x_true, guess = self.generate_training_data(self.batch_size, training_data=True)
             self.sess.run(self.optimizer, feed_dict={self.true: x_true, self.measurement: measurement,
-                                                     self.guess: guess})
+                                                     self.guess: guess, self.alpha_num: alpha})
 
     def evaluate(self):
         # get test data
@@ -296,7 +310,7 @@ class postprocessing(generic_framework):
         # generate random distribution for rays
         epsilon = np.random.uniform(size=(self.batch_size))
         out = self.sess.run(self.out, feed_dict={self.true: x_true, self.measurement: measurement,
-                                                 self.guess: guess})
+                                                 self.guess: guess, self.alpha_num: self.alpha})
 
         iteration, adv_loss, \
         trans_loss, loss_was, \
@@ -305,7 +319,7 @@ class postprocessing(generic_framework):
                                          feed_dict={self.random_uint: epsilon, self.ground_truth: x_true,
                                                     self.network_guess: out, self.true: x_true,
                                                     self.measurement: measurement,
-                                                    self.guess: guess})
+                                                    self.guess: guess, self.alpha_num: self.alpha})
         print('Iteration: {}, mu: {}, Quality: {}, Wass. Dis.: {}, '
               'Transp. Loss: {}, Wass. Loss.:{}'.format(iteration, self.alpha, quality, loss_was,
                                                         trans_loss, adv_loss))
@@ -319,6 +333,12 @@ class postprocessing(generic_framework):
                 self.evaluate()
 
         self.save(self.global_step)
+
+    def pretrain(self, steps):
+        for k in range(steps):
+            self.train_generator(1, pretrain=True)
+            if k%20 == 0:
+                self.evaluate()
 
     # estimate good regularisation parameter alpha in unsupervised case. Heuristic: Ground truth is a stable point,
     # so alpha = 1 / [1+ 2 ||A^t (Ax-y)||]

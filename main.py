@@ -15,18 +15,33 @@ from networks import Res_UNet
 ### Experiments on BSDS with 10% noise
 nl = 0.1
 
-reg_param = [0.015]
+# the parameter determines the weight of the adv net compared to l2 loss.
+# 0 corresponds to pure adversarial loss, 1 to pure l2 loss
+reg_param = [0.015, 0.01, 0.022]
+
 class Exp1(postprocessing):
     noise_level = nl
 
-reg_param_sup = []
+# the parameter alpha determines the weight of the adv net compared to l2 loss.
+# 0 corresponds to pure adversarial loss, 1 to pure l2 loss
+reg_param_sup = [0.1, 0.2, 0.05]
 class Exp2(postprocessing_supervised):
     noise_level = nl
 
-# find suitable regularization levels
-recon = Exp1(0.015)
-print(recon.find_reg_parameter())
-print(recon.find_reg_parameter_supervised())
+pn = 0
+recon = Exp1(reg_param[pn])
+recon.pretrain(200)
+for k in range(10):
+    recon.train(500)
+recon.end()
+
+recon = Exp2(reg_param_sup[pn])
+recon.pretrain(200)
+for k in range(10):
+    recon.train(500)
+recon.end()
+
+
 
 
 ### Experiments on LUNA with 3% noise on measurements

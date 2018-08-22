@@ -24,6 +24,9 @@ class forward_model(object):
     def forward_operator(self, image):
         pass
 
+    def adjoint(self, measurment):
+        pass
+
     def inverse(self, measurement):
         pass
 
@@ -56,6 +59,9 @@ class ct(forward_model):
         self.fbp = (opnorm) * odl.tomo.fbp_op(op)
         self.adjoint_operator = (1 / opnorm)*op.adjoint
 
+        # the spaces
+        self.meas_space = self.operator.range.shape
+        self.image_space = (128,128)
 
         # Create tensorflow layer from odl operator
         self.ray_transform = odl.contrib.tensorflow.as_tensorflow_layer(self.operator,
@@ -69,12 +75,41 @@ class ct(forward_model):
         return self.operator.range.shape
 
     def forward_operator(self, image):
-        input = self.space.element(image)
-        return self.operator(input)
+        shape = image.shape
+        if len(shape) == 4:
+            result = np.zeros(shape=[shape[0], self.meas_space[0], self.meas_space[1],1])
+            for k in range(shape[0]):
+                input = self.space.element(image[k,...,0])
+                result[k,...,0] = self.operator(input)
+            return result
+        else:
+            input = self.space.element(image)
+            return self.operator(input)
+
+    def adjoint(self, measurement):
+        shape = measurement.shape
+        if len(shape) == 4:
+            result = np.zeros(shape=[shape[0], self.image_space[0], self.image_space[1], 1])
+            for k in range(shape[0]):
+                input = self.operator.range.element(measurement[k, ..., 0])
+                result[k, ..., 0] = self.adjoint_operator(input)
+            return result
+        else:
+            input = self.operator.range.element(measurement)
+            return self.adjoint_operator(input)
 
     def inverse(self, measurement):
-        input = self.operator.range.element(measurement)
-        return self.fbp(input)
+        shape = measurement.shape
+        if len(shape) == 4:
+            result = np.zeros(shape=[shape[0], self.image_space[0], self.image_space[1], 1])
+            for k in range(shape[0]):
+                input = self.operator.range.element(measurement[k, ..., 0])
+                result[k, ..., 0] = self.fbp(input)
+            return result
+        else:
+            input = self.operator.range.element(measurement)
+            return self.fbp(input)
+
 
     def tensorflow_operator(self, input):
         return self.ray_transform(input)
@@ -105,6 +140,9 @@ class denoising(forward_model):
 
     def forward_operator(self, image):
         return image
+
+    def adjoint(self, measurement):
+        return measurement
 
     def inverse(self, measurement):
         return measurement

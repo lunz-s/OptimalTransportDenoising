@@ -18,7 +18,7 @@ from forward_models import ct
 from forward_models import denoising
 
 from data_pips import LUNA
-from networks import binary_classifier
+from networks import improved_binary_classifier
 from networks import UNet
 from networks import fully_convolutional
 from data_pips import BSDS
@@ -27,14 +27,13 @@ from data_pips import BSDS
 # This class provides methods necessary
 class generic_framework(object):
     model_name = 'no_model'
-    experiment_name = 'default_experiment'
 
     # set the noise level used for experiments
     noise_level = 0.01
 
     # methods to define the models used in framework
     def get_network(self, size, colors):
-        return binary_classifier(size=size, colors=colors)
+        return improved_binary_classifier(size=size, colors=colors)
 
     def get_Data_pip(self):
         return LUNA()
@@ -42,8 +41,10 @@ class generic_framework(object):
     def get_model(self, size):
         return ct(size=size)
 
-
-    def __init__(self):
+    # the parameter alpha determines the weight of the adv net compared to l2 loss.
+    # 0 corresponds to pure adversarial loss, 1 to pure l2 loss
+    def __init__(self, alpha):
+        self.alpha = alpha
         self.data_pip = self.get_Data_pip()
         self.colors = self.data_pip.colors
         self.image_size = self.data_pip.image_size
@@ -58,7 +59,7 @@ class generic_framework(object):
             path_prefix=''
         elif name == 'motel':
             path_prefix='/local/scratch/public/sl767/OptimalTransportDenoising/'
-        self.path = path_prefix+'Saves/{}/{}/{}/{}/'.format(self.model.name, self.data_pip.name, self.model_name, self.experiment_name)
+        self.path = path_prefix+'Saves/{}/{}/{}/Weight_{}/'.format(self.model.name, self.noise_level, self.model_name, self.alpha)
 
 
         # start tensorflow sesssion
@@ -103,35 +104,6 @@ class generic_framework(object):
                     pass
                 print(key + ' created')
 
-    # visualizes the quality of the current method
-    def visualize(self, true, fbp, guess, name):
-        quality = np.average(np.sqrt(np.sum(np.square(true - guess), axis=(1, 2, 3))))
-        print('Quality of reconstructed image: ' + str(quality))
-        if self.colors == 1:
-            t = true[-1,...,0]
-            g = guess[-1, ...,0]
-            p = fbp[-1, ...,0]
-        else:
-            t = true[-1,...]
-            g = guess[-1, ...]
-            p = fbp[-1, ...]
-        plt.figure()
-        plt.subplot(131)
-        plt.imshow(ut.cut_image(t))
-        plt.axis('off')
-        plt.title('Original')
-        plt.subplot(132)
-        plt.imshow(ut.cut_image(p))
-        plt.axis('off')
-        plt.title('PseudoInverse')
-        plt.suptitle('L2 :' + str(quality))
-        plt.subplot(133)
-        plt.imshow(ut.cut_image(g))
-        plt.title('Reconstruction')
-        plt.axis('off')
-        plt.savefig(self.path + name + '.png')
-        plt.close()
-
     def save(self, global_step):
         saver = tf.train.Saver()
         saver.save(self.sess, self.path+'Data/model', global_step=global_step)
@@ -153,183 +125,22 @@ class generic_framework(object):
     def deploy(self, true, guess, measurement):
         pass
 
-# Framework for postprocessing
+# The postprocessing framework with unsupervised adversarial loss
 class postprocessing(generic_framework):
-    model_name = 'PostProcessing'
-
-    # learning rate for Adams
-    learning_rate = 0.001
-    # The batch size
-    batch_size = 64
-
-    # methods to define the models used in framework
-    def get_network(self, size, colors):
-        return UNet(size=size, colors=colors)
-
-    def get_Data_pip(self):
-        return LUNA()
-
-    def get_model(self, size):
-        return ct(size=size)
-
-    def __init__(self):
-        # call superclass init
-        super(postprocessing, self).__init__()
-
-        # set placeholder for input and correct output
-        self.true = tf.placeholder(shape=[None, self.image_space[0], self.image_space[1], self.data_pip.colors], dtype=tf.float32)
-        self.y = tf.placeholder(shape=[None, self.image_space[0], self.image_space[1], self.data_pip.colors], dtype=tf.float32)
-        # network output
-        self.out = self.network.net(self.y)
-        # compute loss
-        data_mismatch = tf.square(self.out - self.true)
-        self.loss = tf.reduce_mean(tf.sqrt(tf.reduce_sum(data_mismatch, axis=(1, 2, 3))))
-        # optimizer
-        # optimizer for Wasserstein network
-        self.global_step = tf.Variable(0, name='global_step', trainable=False)
-        self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss,
-                                                                             global_step=self.global_step)
-        # logging tools
-        tf.summary.scalar('Loss', self.loss)
-
-        # set up the logger
-        self.merged = tf.summary.merge_all()
-        self.writer = tf.summary.FileWriter(self.path + 'Logs/',
-                                            self.sess.graph)
-
-        # initialize Variables
-        tf.global_variables_initializer().run()
-
-        # load existing saves
-        self.load()
-
-    def log(self, x, y):
-        summary, step = self.sess.run([self.merged, self.global_step],
-                                      feed_dict={self.true : x,
-                                                 self.y : y})
-        self.writer.add_summary(summary, step)
-
-    def train(self, steps):
-        for k in range(steps):
-            y, x_true, fbp = self.generate_training_data(self.batch_size)
-            self.sess.run(self.optimizer, feed_dict={self.true : x_true,
-                                                    self.y : fbp})
-            if k%50 == 0:
-                iteration, loss = self.sess.run([self.global_step, self.loss], feed_dict={self.true : x_true,
-                                                    self.y : fbp})
-                print('Iteration: ' + str(iteration) + ', MSE: ' +str(loss))
-
-                # logging has to be adopted
-                self.log(x_true,fbp)
-                output = self.sess.run(self.out, feed_dict={self.true : x_true,
-                                                    self.y : fbp})
-                self.visualize(x_true, fbp, output, 'Iteration_{}'.format(iteration))
-        self.save(self.global_step)
-
-    def evaluate(self):
-        y, x_true, fbp = self.generate_training_data(self.batch_size)
-
-# implementation of iterative scheme from Jonas and Ozans paper
-class iterative_scheme(generic_framework):
-    model_name = 'Learned_gradient_descent'
-
-    # hyperparameters
-    iterations = 3
-    learning_rate = 0.001
-    # The batch size
-    batch_size = 32
-
-    def get_network(self, size, colors):
-        return fully_convolutional(size=size, colors=colors)
-
-    def __init__(self):
-        # call superclass init
-        super(iterative_scheme, self).__init__()
-
-        # set placeholder for input and correct output
-        self.true = tf.placeholder(shape=[None, self.image_space[0], self.image_space[1], self.data_pip.colors],
-                                   dtype=tf.float32)
-        self.guess = tf.placeholder(shape=[None, self.image_space[0], self.image_space[1], self.data_pip.colors],
-                                   dtype=tf.float32)
-        self.y = tf.placeholder(shape=[None, self.measurement_space[0], self.measurement_space[1], self.data_pip.colors],
-                                dtype=tf.float32)
-
-
-        # network output - iterative scheme
-        x = self.guess
-        for i in range(self.iterations):
-            measurement = self.model.tensorflow_operator(x)
-            g_x = self.model.tensorflow_adjoint_operator(self.y - measurement)
-            tf.summary.image('Data_gradient', g_x, max_outputs=1)
-            tf.summary.scalar('Data_gradient_Norm', tf.norm(g_x))
-            # network input
-            net_input = tf.concat([x, g_x], axis=3)
-
-            # use the network model defined in
-            x_update = self.network.net(net_input)
-            tf.summary.scalar('x_update', tf.norm(x_update))
-            x = x - x_update
-            tf.summary.image('Current_Guess', x, max_outputs=1)
-        self.out = x
-
-        # compute loss
-        data_mismatch = tf.square(self.out - self.true)
-        self.loss = tf.reduce_mean(tf.sqrt(tf.reduce_sum(data_mismatch, axis=(1, 2, 3))))
-        # optimizer
-        # optimizer for Wasserstein network
-        self.global_step = tf.Variable(0, name='global_step', trainable=False)
-        self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss,
-                                                                             global_step=self.global_step)
-        # logging tools
-        tf.summary.scalar('Loss', self.loss)
-
-        # set up the logger
-        self.merged = tf.summary.merge_all()
-        self.writer = tf.summary.FileWriter(self.path + 'Logs/',
-                                            self.sess.graph)
-
-        # initialize Variables
-        tf.global_variables_initializer().run()
-
-        # load existing saves
-        self.load()
-
-    def train(self, steps):
-        for k in range(steps):
-            y, x_true, fbp = self.generate_training_data(self.batch_size)
-            self.sess.run(self.optimizer, feed_dict={self.true : x_true,
-                                                    self.y : y,
-                                                    self.guess : fbp})
-            if k%10 == 0:
-                summary, iteration, loss, output = self.sess.run([self.merged, self.global_step, self.loss, self.out],
-                                                         feed_dict={self.true : x_true,
-                                                                    self.y : y,
-                                                                    self.guess : fbp})
-                print('Iteration: ' + str(iteration) + ', MSE: ' +str(loss) + ', Original Error: '
-                      + str(ut.l2_norm(x_true - fbp)))
-
-                self.writer.add_summary(summary, iteration)
-                self.visualize(x_true, fbp, output, 'Iteration_{}'.format(iteration))
-
-        self.save(self.global_step)
-
-class postprocessing_adversarial(generic_framework):
     model_name = 'PostProcessing'
 
     # learning rate for Adams
     learning_rate = 0.0001
     # learning rate adversarial
     learning_rate_adv = 0.0001
-    # weight adv net
-    trans_loss_weight = 1
     # The batch size
     batch_size = 16
     # weight of soft relaxation regulariser adversarial net
-    lmb= 10
+    lmb = 10
     # default_adv_steps
     def_adv_steps = 12
     # default_gen_steps
-    def_gen_steps = 1
+    def_gen_steps = 2
 
     # methods to define the models used in framework
     def get_network(self, size, colors):
@@ -342,7 +153,14 @@ class postprocessing_adversarial(generic_framework):
         return denoising(size=size)
 
     def get_adversarial_network(self):
-        return binary_classifier(size=self.image_size, colors=self.colors)
+        return improved_binary_classifier(size=self.image_size, colors=self.colors)
+
+    def reconstruction_model(self, fbp, measurement):
+        return self.network.net(fbp)
+
+    def loss_model(self, measurement, reconstruction, truth):
+        transport_loss = self.model.tensorflow_operator(reconstruction) - measurement
+        return tf.reduce_mean(tf.reduce_sum(tf.square(transport_loss), axis=(1, 2, 3)))
 
     def set_adv_steps(self, amount = None):
         if amount == None:
@@ -357,9 +175,9 @@ class postprocessing_adversarial(generic_framework):
             return amount
 
 
-    def __init__(self):
+    def __init__(self, alpha):
         # call superclass init
-        super(postprocessing_adversarial, self).__init__()
+        super(postprocessing, self).__init__(alpha=alpha)
         adversarial_net = self.get_adversarial_network()
 
         # set training parameters
@@ -377,14 +195,13 @@ class postprocessing_adversarial(generic_framework):
                                 dtype=tf.float32)
         # network output
         with tf.variable_scope('Forward_model'):
-            self.out = self.network.net(self.guess)
+            self.out = self.reconstruction_model(self.guess, self.measurement)
         # compute loss
         # transport loss: L2 loss squared
         with tf.variable_scope('adversarial_loss'):
             self.adv = tf.reduce_mean(adversarial_net.net(self.out))
-            transport_loss = self.model.tensorflow_operator(self.out) - self.measurement
-            self.trans_loss = tf.reduce_mean(tf.reduce_sum(tf.square(transport_loss), axis=(1, 2, 3)))
-            self.loss = self.adv + self.trans_loss_weight * self.trans_loss
+            self.l2_loss = self.loss_model(measurement=self.measurement, reconstruction=self.out, truth=self.true)
+            self.loss = (1-self.alpha) * self.adv + self.alpha * self.l2_loss
             self.normed_wass = self.adv - tf.reduce_mean(adversarial_net.net(self.true))
 
 
@@ -408,10 +225,10 @@ class postprocessing_adversarial(generic_framework):
             # loss analysis
             tf.summary.scalar('Overall_Loss', self.loss)
             tf.summary.scalar('Distributional_Loss', self.normed_wass)
-            tf.summary.scalar('Transport_Loss',
-                                                             self.trans_loss_weight * self.trans_loss)
+            tf.summary.scalar('Transport_Loss', self.l2_loss)
+
             gradients_distributional = tf.gradients(batch_s *self.adv, self.out)[0]
-            gradients_transport = tf.gradients(batch_s *self.trans_loss_weight * self.trans_loss, self.out)[0]
+            gradients_transport = tf.gradients(batch_s *self.l2_loss, self.out)[0]
             tf.summary.scalar('Distributional_Loss_Grad', ut.tf_l2_norm(gradients_distributional))
             tf.summary.scalar('Transport_Loss_Grad', ut.tf_l2_norm(gradients_transport))
 
@@ -473,46 +290,80 @@ class postprocessing_adversarial(generic_framework):
             self.sess.run(self.optimizer, feed_dict={self.true: x_true, self.measurement: measurement,
                                                      self.guess: guess})
 
+    def evaluate(self):
+        # get test data
+        measurement, x_true, guess = self.generate_training_data(self.batch_size, training_data=False)
+        # generate random distribution for rays
+        epsilon = np.random.uniform(size=(self.batch_size))
+        out = self.sess.run(self.out, feed_dict={self.true: x_true, self.measurement: measurement,
+                                                 self.guess: guess})
+
+        iteration, adv_loss, \
+        trans_loss, loss_was, \
+        summary, quality = self.sess.run([self.global_step, self.adv,
+                                          self.l2_loss, self.loss_was, self.merged, self.quality],
+                                         feed_dict={self.random_uint: epsilon, self.ground_truth: x_true,
+                                                    self.network_guess: out, self.true: x_true,
+                                                    self.measurement: measurement,
+                                                    self.guess: guess})
+        print('Iteration: {}, mu: {}, Quality: {}, Wass. Dis.: {}, '
+              'Transp. Loss: {}, Wass. Loss.:{}'.format(iteration, self.alpha, quality, loss_was,
+                                                        trans_loss, adv_loss))
+        self.writer.add_summary(summary, iteration)
 
     def train(self, steps):
         for k in range(steps):
             self.train_adversarial(self.adv_steps)
             self.train_generator(self.gen_steps)
-            if k % 50 == 0:
-                # get test data
-                measurement, x_true, guess = self.generate_training_data(self.batch_size, training_data=False)
-                # generate random distribution for rays
-                epsilon = np.random.uniform(size=(self.batch_size))
-                out = self.sess.run(self.out, feed_dict={self.true: x_true, self.measurement: measurement,
-                                                   self.guess: guess})
+            if k % 20 == 0:
+                self.evaluate()
 
-                iteration, adv_loss, \
-                trans_loss, loss_was, \
-                summary, quality = self.sess.run([self.global_step, self.adv,
-                                        self.trans_loss, self.loss_was, self.merged, self.quality],
-                                    feed_dict={self.random_uint: epsilon, self.ground_truth: x_true,
-                                    self.network_guess: out, self.true: x_true, self.measurement: measurement,
-                                       self.guess: guess})
-                print('Iteration: {}, mu: {}, Quality: {}, Wass. Dis.: {}, '
-                      'Transp. Loss: {}, Wass. Loss.:{}'.format(iteration, self.trans_loss_weight, quality, loss_was,
-                                                                trans_loss, adv_loss))
-                self.writer.add_summary(summary, iteration)
-
-                self.visualize(x_true, guess, out, 'Images/Iteration_{}'.format(iteration))
         self.save(self.global_step)
 
-    # estimate good regularisation parameter lmb = 'trans_loss_weight'. Works for denoising only!
-    # heurisitic: grad_y D(y) + lmb ||x - y||^2_2 |_{y = x_true} = 0
-    # implies: 1 = lmb 2 ||x-x_true||_2
+    # estimate good regularisation parameter alpha in unsupervised case. Heuristic: Ground truth is a stable point,
+    # so alpha = 1 / [1+ 2 ||A^t (Ax-y)||]
     def find_reg_parameter(self):
-        # estimate ||x-x_true||_2
-        # get test data
-        measurement, x_true, guess = self.generate_training_data(self.batch_size, training_data=True)
-        # mismatch for denoising only!!!
-        mismatch = ut.l2_norm(guess - x_true)
-        return 1/(2*mismatch)
+        measurement, x_true, guess = self.generate_training_data(32, training_data=True)
+        Ax_y = self.model.forward_operator(x_true) - measurement
+        data_er = ut.l2_norm(self.model.adjoint_operator(Ax_y))
+        return 1/(1+2*data_er)
 
+    # estimate good regularisation parameter in supervised case. Heuristic: Reconstruction reaches level beta of
+    # the error of the naive reconstruction and is a stable point. Hence
+    # alpha = 1/ [1+ 2 beta ||x_fbp - x_true||]
+    def find_reg_parameter_supervised(self, beta = 0.2):
+        measurement, x_true, guess = self.generate_training_data(32, training_data=True)
+        C = beta * ut.l2_norm(x_true - guess)
+        return 1/(1+2*C)
 
+# Iterative scheme for reconstruction
+class iterative_recon(postprocessing):
+    model_name = 'Iterative_Scheme'
+
+    def get_network(self, size, colors):
+        return fully_convolutional(size, colors)
+
+    def reconstruction_model(self, fbp, measurement):
+        x = fbp
+        for k in range(4):
+            # get gradient of data term
+            grad = self.model.tensorflow_adjoint_operator(self.model.tensorflow_operator(x) - measurement)
+            # network with gradient of data term and current guess as input
+            with tf.variable_scope('Iteration_' + str(k)):
+                x = self.network.net(tf.concat((grad, x), axis=3))
+        return x
+
+# Supervised postprocessing, leveraged with L2 distance to ground truth
+class postprocessing_supervised(postprocessing):
+    model_name = 'Postprocessing_Supervised'
+    def loss_model(self, measurement, reconstruction, truth):
+        return tf.reduce_mean(tf.reduce_sum(tf.square(reconstruction-truth), axis=(1, 2, 3)))
+
+# Supervised postprocessing, leveraged with L2 distance to ground truth
+class iterative_recon_supervised(iterative_recon):
+    model_name = 'Iterative_Scheme_Supervised'
+    def loss_model(self, measurement, reconstruction, truth):
+        return tf.reduce_mean(tf.reduce_sum(tf.square(reconstruction - truth), axis=(1, 2, 3)))
 
 # TV reconstruction
 class total_variation(generic_framework):

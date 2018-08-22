@@ -24,24 +24,27 @@ class Exp1(postprocessing):
 
 # the parameter alpha determines the weight of the adv net compared to l2 loss.
 # 0 corresponds to pure adversarial loss, 1 to pure l2 loss
-reg_param_sup = [0.1, 0.2, 0.05]
+reg_param_sup = [1, 0.1, 0.2]
 class Exp2(postprocessing_supervised):
     noise_level = nl
 
-pn = 0
-recon = Exp1(reg_param[pn])
+
+recon = Exp1(reg_param[0])
 recon.pretrain(200)
 for k in range(10):
     recon.train(500)
 recon.end()
 
-recon = Exp2(reg_param_sup[pn])
+recon = Exp2(reg_param_sup[0])
+for k in range(10):
+    recon.pretrain(500)
+recon.end()
+
+recon = Exp2(reg_param_sup[1])
 recon.pretrain(200)
 for k in range(10):
     recon.train(500)
 recon.end()
-
-
 
 
 ### Experiments on LUNA with 3% noise on measurements

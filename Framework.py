@@ -296,7 +296,7 @@ class postprocessing(generic_framework):
 
     def train_generator(self, steps, pretrain=False):
         if pretrain:
-            alpha = 0
+            alpha = 1
         else:
             alpha = self.alpha
         for k in range(steps):

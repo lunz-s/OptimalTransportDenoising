@@ -325,7 +325,7 @@ class postprocessing(generic_framework):
     def find_reg_parameter(self):
         measurement, x_true, guess = self.generate_training_data(32, training_data=True)
         Ax_y = self.model.forward_operator(x_true) - measurement
-        data_er = ut.l2_norm(self.model.adjoint_operator(Ax_y))
+        data_er = ut.l2_norm(self.model.adjoint(Ax_y))
         return 1/(1+2*data_er)
 
     # estimate good regularisation parameter in supervised case. Heuristic: Reconstruction reaches level beta of

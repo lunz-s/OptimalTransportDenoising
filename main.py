@@ -7,7 +7,6 @@ from data_pips import LUNA
 from data_pips import BSDS
 
 from networks import improved_binary_classifier
-from networks import multiscale_l1_classifier
 from networks import resnet_classifier
 from networks import Res_UNet
 
@@ -29,26 +28,24 @@ class Exp2(postprocessing_supervised):
     noise_level = nl
 
 recon = Exp1(reg_param[1])
-recon.pretrain(200)
 for k in range(10):
     recon.train(500)
 recon.end()
 
-if 0:
-    recon = Exp1(reg_param[0])
-    for k in range(10):
-        recon.train(500)
-    recon.end()
+recon = Exp1(reg_param[0])
+for k in range(10):
+    recon.train(500)
+recon.end()
 
-    recon = Exp2(reg_param_sup[0])
-    for k in range(10):
-        recon.pretrain(500)
-    recon.end()
+recon = Exp2(reg_param_sup[0])
+for k in range(10):
+    recon.pretrain(500)
+recon.end()
 
-    recon = Exp2(reg_param_sup[1])
-    for k in range(10):
-        recon.train(500)
-    recon.end()
+recon = Exp2(reg_param_sup[1])
+for k in range(10):
+    recon.train(500)
+recon.end()
 
 
 ### Experiments on LUNA with 3% noise on measurements

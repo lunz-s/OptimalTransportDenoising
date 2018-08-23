@@ -86,49 +86,6 @@ class improved_binary_classifier(object):
         # Output network results
         return output
 
-class multiscale_l1_classifier(object):
-    def __init__(self, size, colors):
-        self.size = size
-        self.reuse = False
-        self.colors = colors
-
-    def net(self, input):
-        # fine scale
-        loc1 = tf.layers.conv2d(inputs=input, filters=16, kernel_size=[5, 5], padding="same",
-                                 activation=lrelu, reuse=self.reuse, name='loc1')
-        loc2 = tf.layers.conv2d(inputs= loc1, filters=16, kernel_size=[5, 5], padding="same",
-                                 activation=lrelu, reuse=self.reuse, name='loc2')
-        loc3 = tf.layers.conv2d(inputs= loc2, filters=16, kernel_size=[5, 5], padding="same",
-                                 activation=lrelu, reuse=self.reuse, name='loc3')
-        loc_l1 = ut.image_l1(loc3)
-
-        # medium scale
-        med1 = tf.layers.conv2d(inputs=input, filters=16, kernel_size=[5, 5], padding="same",
-                                 activation=lrelu, reuse=self.reuse, name='med1')
-        med2 = tf.layers.conv2d(inputs= med1, filters=16, kernel_size=[5, 5], padding="same",
-                                 activation=lrelu, reuse=self.reuse, name='med2')
-        med3 = ut.dilated_conv_layer(inputs= med2, name='med3', filters=16, kernel_size=[5, 5], padding="SAME",
-                                 activation=lrelu, reuse=self.reuse, rate=4)
-        med_l1 = ut.image_l1(med3)
-
-        # global scale
-        glob1 = tf.layers.conv2d(inputs=input, filters=16, kernel_size=[5, 5], padding="same",
-                                 activation=lrelu, reuse=self.reuse, name='glob1')
-        glob2 = ut.dilated_conv_layer(inputs= glob1, name='glob2', filters=16, kernel_size=[5, 5], padding="SAME",
-                                 activation=lrelu, reuse=self.reuse, rate = 4)
-        glob3 = ut.dilated_conv_layer(inputs= glob2, name='glob3', filters=16, kernel_size=[5, 5], padding="SAME",
-                                 activation=lrelu, reuse=self.reuse, rate=24)
-        glob_l1 = ut.image_l1(glob3)
-
-        # linear classifier on l1 norms
-        results = tf.concat([loc_l1, med_l1, glob_l1], axis=1)
-        dense = tf.layers.dense(inputs = results, units = 48, activation=lrelu, reuse=self.reuse, name='dense1')
-        output = tf.layers.dense(inputs=dense, units=1, reuse=self.reuse, name='dense2')
-
-        # change reuse variable for next call of network method
-        self.reuse = True
-
-        return output
 
 class UNet(object):
     def __init__(self, size, colors, parameter_sharing = True):

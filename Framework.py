@@ -33,7 +33,7 @@ class generic_framework(object):
 
     # methods to define the models used in framework
     def get_network(self, size, colors):
-        return improved_binary_classifier(size=size, colors=colors)
+        return UNet(size=size, colors=colors)
 
     def get_Data_pip(self):
         return LUNA()
@@ -130,9 +130,9 @@ class postprocessing(generic_framework):
     model_name = 'PostProcessing'
 
     # learning rate for Adams
-    learning_rate = 0.0002
+    learning_rate = 0.0001
     # learning rate adversarial
-    learning_rate_adv = 0.0002
+    learning_rate_adv = 0.0001
     # The batch size
     batch_size = 16
     # weight of soft relaxation regulariser adversarial net
@@ -229,8 +229,8 @@ class postprocessing(generic_framework):
             tf.summary.scalar('L2_Loss', self.l2_loss)
 
             tf.summary.image('Ground_Truth', self.true, max_outputs=2)
-            tf.summary.image('FBP', self.guess, max_outputs=2)
-            tf.summary.image('Reconstruction', self.out, max_outputs=2)
+            tf.summary.image('FBP', ut.cut_image_tf(self.guess), max_outputs=2)
+            tf.summary.image('Reconstruction', ut.cut_image_tf(self.out), max_outputs=2)
 
             gradients_distributional = tf.gradients(batch_s *self.adv, self.out)[0]
             gradients_transport = tf.gradients(batch_s *self.l2_loss, self.out)[0]

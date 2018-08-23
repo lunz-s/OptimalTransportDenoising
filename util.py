@@ -16,7 +16,10 @@ import dicom as dc
 from scipy.misc import imresize
 import platform
 
-
+def cut_image_tf(pic):
+    pic = tf.maximum(pic, 0.0)
+    pic = tf.minimum(pic, 1.0)
+    return pic
 
 def cut_image(pic):
     pic = np.maximum(pic, 0.0)

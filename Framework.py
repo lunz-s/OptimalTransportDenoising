@@ -129,10 +129,6 @@ class generic_framework(object):
 class postprocessing(generic_framework):
     model_name = 'PostProcessing'
 
-    # learning rate for Adams
-    learning_rate = 0.0001
-    # learning rate adversarial
-    learning_rate_adv = 0.0001
     # The batch size
     batch_size = 16
     # weight of soft relaxation regulariser adversarial net
@@ -175,10 +171,13 @@ class postprocessing(generic_framework):
             return amount
 
 
-    def __init__(self, alpha):
+    def __init__(self, alpha, learning_rate):
         # call superclass init
         super(postprocessing, self).__init__(alpha=alpha)
         adversarial_net = self.get_adversarial_network()
+
+        # set learning rate
+        self.learning_rate = learning_rate
 
         # set training parameters
         self.adv_steps = self.set_adv_steps()
@@ -339,6 +338,7 @@ class postprocessing(generic_framework):
             self.train_generator(1, pretrain=True)
             if k%20 == 0:
                 self.evaluate()
+        self.save(self.global_step)
 
     # estimate good regularisation parameter alpha in unsupervised case. Heuristic: Ground truth is a stable point,
     # so alpha = 1 / [1+ 2 ||A^t (Ax-y)||]

@@ -16,33 +16,56 @@ nl = 0.1
 
 # the parameter determines the weight of the adv net compared to l2 loss.
 # 0 corresponds to pure adversarial loss, 1 to pure l2 loss
-reg_param = [0.015, 0.005, 0.022]
+reg_param = [0.015, 0.005, 0]
 
 class Exp1(postprocessing):
     noise_level = nl
 
 # the parameter alpha determines the weight of the adv net compared to l2 loss.
 # 0 corresponds to pure adversarial loss, 1 to pure l2 loss
-reg_param_sup = [1, 0.1, 0.2]
+reg_param_sup = [1, 0.1]
 class Exp2(postprocessing_supervised):
     noise_level = nl
 
-recon = Exp1(reg_param[1])
+learning_rates = [0.0002, 0.0001, 0.00005]
+
+for rate in learning_rates:
+    # recon = Exp1(reg_param[1], rate)
+    # for k in range(10):
+    #     recon.train(500)
+    # recon.end()
+
+    # recon = Exp1(reg_param[0], rate)
+    # for k in range(10):
+    #     recon.train(500)
+    # recon.end()
+
+    recon = Exp1(reg_param[2], rate)
+    for k in range(10):
+        recon.train(500)
+    recon.end()
+
+    recon = Exp2(reg_param_sup[0], rate)
+    for k in range(10):
+        recon.pretrain(500)
+    recon.end()
+
+    # recon = Exp2(reg_param_sup[1], rate)
+    # for k in range(10):
+    #     recon.train(500)
+    # recon.end()
+
+recon = Exp1(reg_param[1], 0.00005)
 for k in range(10):
     recon.train(500)
 recon.end()
 
-recon = Exp1(reg_param[0])
+recon = Exp1(reg_param[0], 0.00005)
 for k in range(10):
     recon.train(500)
 recon.end()
 
-recon = Exp2(reg_param_sup[0])
-for k in range(10):
-    recon.pretrain(500)
-recon.end()
-
-recon = Exp2(reg_param_sup[1])
+recon = Exp2(reg_param_sup[1], 0.00005)
 for k in range(10):
     recon.train(500)
 recon.end()

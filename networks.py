@@ -132,18 +132,18 @@ class fully_convolutional(UNet):
     def raw_net(self, input, reuse):
         # 128
         conv1 = tf.layers.conv2d(inputs=input, filters=32, kernel_size=[5, 5],
-                                 padding="same", name='conv1', reuse=reuse, activation=lrelu)
+                                 padding="same", name='conv1', reuse=tf.AUTO_REUSE, activation=lrelu)
         # 64
         conv2 = tf.layers.conv2d(inputs=conv1, filters=64, kernel_size=[5, 5],
-                                 padding="same", name='conv2', reuse=reuse, activation=lrelu)
+                                 padding="same", name='conv2', reuse=tf.AUTO_REUSE, activation=lrelu)
         # 32
-        conv3 = tf.layers.conv2d(inputs=conv2, filters=64, kernel_size=[3, 3],
-                                 padding="same", name='conv3', reuse=reuse, activation=lrelu)
+        conv3 = tf.layers.conv2d(inputs=conv2, filters=64, kernel_size=[5, 5],
+                                 padding="same", name='conv3', reuse=tf.AUTO_REUSE, activation=lrelu)
         # 64
         conv4 = tf.layers.conv2d(inputs=conv3, filters=32, kernel_size=[5, 5],
-                                 padding="same", name='conv4',reuse=reuse, activation=lrelu)
+                                 padding="same", name='conv4',reuse=tf.AUTO_REUSE, activation=lrelu)
         output = tf.layers.conv2d(inputs=conv4, filters=self.colors, kernel_size=[5, 5],
-                                  padding="same", name='conv6', reuse=reuse)
+                                  padding="same", name='conv6', reuse=tf.AUTO_REUSE)
         return output
 
 ### resnet architectures

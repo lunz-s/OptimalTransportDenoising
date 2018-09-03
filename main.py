@@ -97,13 +97,13 @@ class Exp5(iterative_recon):
     noise_level = nl
     def get_Data_pip(self):
         return LUNA()
-reg_param = [0.015, 0.005]
+reg_param = [0.15, 0.05]
 
 class Exp6(iterative_recon_supervised):
     noise_level = nl
     def get_Data_pip(self):
         return LUNA()
-reg_param_sup = [1, 0.1]
+reg_param_sup = [1, 0.3]
 
 ### do experiments with learned iterative reconstruction only for a start
 for rate in learning_rates:
@@ -117,7 +117,7 @@ for rate in learning_rates:
         recon.train(500)
     recon.end()
 
-    recon = Exp6(reg_param[0], rate)
+    recon = Exp6(reg_param_sup[0], rate)
     for k in range(10):
         recon.pretrain(500)
     recon.end()

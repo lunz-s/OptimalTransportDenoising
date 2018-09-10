@@ -208,13 +208,14 @@ class postprocessing(generic_framework):
         # track L2 loss to ground truth for quality control
         self.quality = tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(self.out- self.true), axis=(1, 2, 3))))
 
-        # optimizer for Wasserstein network
+        # optimizer for Reconstruction network
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
-        self.optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss,
-                                                                             global_step=self.global_step,
-                                                                             var_list=tf.get_collection(
-                                                                                 tf.GraphKeys.GLOBAL_VARIABLES,
+        # apply gradient clipping
+        plain_optimizer = tf.train.AdamOptimizer(self.learning_rate)
+        grads = plain_optimizer.compute_gradients(self.loss, tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
                                                                                  scope='Forward_model'))
+        clipped_grad = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in grads]
+        self.optimizer = plain_optimizer.apply_gradients(clipped_grad, global_step=self.global_step)
 
         # logging tools
         with tf.name_scope('Generator_training'):

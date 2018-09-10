@@ -55,32 +55,6 @@ for rate in learning_rates:
     #     recon.train(500)
     # recon.end()
 
-recon = Exp1(reg_param[1], 0.00005)
-for k in range(10):
-    recon.train(500)
-recon.end()
-
-recon = Exp1(reg_param[0], 0.00005)
-for k in range(10):
-    recon.train(500)
-recon.end()
-
-recon = Exp1(reg_param[2], 0.00005)
-for k in range(10):
-    recon.train(500)
-recon.end()
-
-recon = Exp2(reg_param_sup[0], 0.00005)
-for k in range(10):
-    recon.pretrain(500)
-recon.end()
-
-recon = Exp2(reg_param_sup[1], 0.00005)
-for k in range(10):
-    recon.train(500)
-recon.end()
-
-
 ### Experiments on LUNA with 3% noise on measurements
 nl = 0.02
 class Exp3(postprocessing):
@@ -95,9 +69,16 @@ class Exp4(postprocessing_supervised):
 
 class Exp5(iterative_recon):
     noise_level = nl
+    def_adv_steps = 8
     def get_Data_pip(self):
         return LUNA()
 reg_param = [0.15, 0.05]
+
+class Exp5_1(Exp5):
+    model_name = 'Iterative_Scheme_Stabilized'
+    def_adv_steps = 10
+reduced_learning_rates = [0.00015, 0.0001, 0.00007, 0.00003, 0.00003, 0.00002]
+reg_param_stabilized = [0.3, 0.15]
 
 class Exp6(iterative_recon_supervised):
     noise_level = nl
@@ -106,23 +87,36 @@ class Exp6(iterative_recon_supervised):
 reg_param_sup = [1, 0.3]
 
 ### do experiments with learned iterative reconstruction only for a start
+# use reduced learning rates for unsupervised learning
 for rate in learning_rates:
-    recon = Exp5(reg_param[0], rate)
+    pass
+    # recon = Exp6(reg_param_sup[0], rate)
+    # for k in range(10):
+    #     recon.pretrain(500)
+    # recon.end()
+    #
+    # recon = Exp6(reg_param_sup[1], rate)
+    # for k in range(10):
+    #     recon.train(500)
+    # recon.end()
+
+    # recon = Exp5(reg_param[0], rate)
+    # for k in range(10):
+    #     recon.train(500)
+    # recon.end()
+    #
+    # recon = Exp5(reg_param[1], rate)
+    # for k in range(10):
+    #     recon.train(500)
+    # recon.end()
+
+for rate in reduced_learning_rates:
+    recon = Exp5_1(reg_param_stabilized[0], rate)
     for k in range(10):
         recon.train(500)
     recon.end()
 
-    recon = Exp5(reg_param[1], rate)
-    for k in range(10):
-        recon.train(500)
-    recon.end()
-
-    recon = Exp6(reg_param_sup[0], rate)
-    for k in range(10):
-        recon.pretrain(500)
-    recon.end()
-
-    recon = Exp6(reg_param_sup[1], rate)
+    recon = Exp5_1(reg_param_stabilized[1], rate)
     for k in range(10):
         recon.train(500)
     recon.end()

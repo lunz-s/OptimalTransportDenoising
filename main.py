@@ -63,7 +63,6 @@ class Exp3(postprocessing):
     noise_level = nl
     def get_Data_pip(self):
         return LUNA()
-
     def get_model(self, size):
         return ct(size=size)
 
@@ -71,7 +70,6 @@ class Exp4(postprocessing_supervised):
     noise_level = nl
     def get_Data_pip(self):
         return LUNA()
-
     def get_model(self, size):
         return ct(size=size)
 
@@ -82,18 +80,24 @@ class Exp5(iterative_recon):
         return LUNA()
     def get_model(self, size):
         return ct(size=size)
-reg_param = [0.15, 0.05]
+# the parameter alpha determines the weight of the adv net compared to l2 loss.
+# 0 corresponds to pure adversarial loss, 1 to pure l2 loss
+reg_param = [0.7, 0.4]
 
 class Exp5_1(Exp5):
     model_name = 'Iterative_Scheme_Stabilized'
     def_adv_steps = 10
 reduced_learning_rates = [0.00015, 0.0001, 0.00007, 0.00003, 0.00003, 0.00002]
-reg_param_stabilized = [0.3, 0.15]
+# the parameter alpha determines the weight of the adv net compared to l2 loss.
+# 0 corresponds to pure adversarial loss, 1 to pure l2 loss
+reg_param_stabilized = [0.7, 0.4]
 
 class Exp6(iterative_recon_supervised):
     noise_level = nl
     def get_Data_pip(self):
         return LUNA()
+    # the parameter alpha determines the weight of the adv net compared to l2 loss.
+    # 0 corresponds to pure adversarial loss, 1 to pure l2 loss
 reg_param_sup = [1, 0.3]
 
 ### do experiments with learned iterative reconstruction only for a start

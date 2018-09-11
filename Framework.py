@@ -129,7 +129,7 @@ class postprocessing(generic_framework):
     model_name = 'PostProcessing'
 
     # The batch size
-    batch_size = 16
+    batch_size = 12
     # weight of soft relaxation regulariser adversarial net
     lmb = 10
     # default_adv_steps

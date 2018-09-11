@@ -119,6 +119,9 @@ class LUNA(data_pip):
             except UnboundLocalError:
                 k = - 10000
                 print('UnboundLocalError caught')
+            except TypeError:
+                k = -10000
+                print('TypeError caught')
         output = np.zeros((128,128,1))
         output[...,0] = pic
         return output

@@ -12,7 +12,6 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-import dicom as dc
 from scipy.misc import imresize
 import platform
 

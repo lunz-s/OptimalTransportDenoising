@@ -9,7 +9,6 @@ import matplotlib.image as mpimg
 import platform
 import odl
 import odl.contrib.tensorflow
-import dicom as dc
 from scipy.misc import imresize
 import tensorflow as tf
 import util as ut

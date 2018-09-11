@@ -10,6 +10,8 @@ from networks import improved_binary_classifier
 from networks import resnet_classifier
 from networks import Res_UNet
 
+from forward_models import ct
+
 
 ### Experiments on BSDS with 10% noise
 nl = 0.1
@@ -62,16 +64,24 @@ class Exp3(postprocessing):
     def get_Data_pip(self):
         return LUNA()
 
+    def get_model(self, size):
+        return ct(size=size)
+
 class Exp4(postprocessing_supervised):
     noise_level = nl
     def get_Data_pip(self):
         return LUNA()
+
+    def get_model(self, size):
+        return ct(size=size)
 
 class Exp5(iterative_recon):
     noise_level = nl
     def_adv_steps = 8
     def get_Data_pip(self):
         return LUNA()
+    def get_model(self, size):
+        return ct(size=size)
 reg_param = [0.15, 0.05]
 
 class Exp5_1(Exp5):
@@ -89,11 +99,10 @@ reg_param_sup = [1, 0.3]
 ### do experiments with learned iterative reconstruction only for a start
 # use reduced learning rates for unsupervised learning
 for rate in learning_rates:
-    pass
-    # recon = Exp6(reg_param_sup[0], rate)
-    # for k in range(10):
-    #     recon.pretrain(500)
-    # recon.end()
+    recon = Exp6(reg_param_sup[0], rate)
+    for k in range(10):
+        recon.pretrain(500)
+    recon.end()
     #
     # recon = Exp6(reg_param_sup[1], rate)
     # for k in range(10):
